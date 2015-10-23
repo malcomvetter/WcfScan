@@ -1,13 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.ServiceModel;
 using System.ServiceModel.Security;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace WcfScan
 {
@@ -15,6 +11,9 @@ namespace WcfScan
     {
         static void Main(string[] args)
         {
+            args = new string[1];
+            args[0] = "net.tcp://127.0.0.1:1337/WcfService1";
+
             Console.WriteLine("\nWCF NET.TCP Scan\n.......");
             if (args.Count() < 1)
             {
@@ -54,7 +53,8 @@ namespace WcfScan
                 }
                 catch (SecurityNegotiationException sne)
                 {
-                    if (sne.InnerException.InnerException.Message.ToLower().Contains("target principal"))
+                    if (sne.InnerException.InnerException != null && 
+                        sne.InnerException.InnerException.Message.ToLower().Contains("target principal"))
                     {
                         Console.WriteLine(" + Server accepted \"{0}\" security mode, but authentication failed:\n   - {1}", mode, sne.InnerException.InnerException.Message);
                     }
