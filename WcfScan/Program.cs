@@ -11,9 +11,6 @@ namespace WcfScan
     {
         static void Main(string[] args)
         {
-            args = new string[1];
-            args[0] = "net.tcp://127.0.0.1:1337/WcfService1";
-
             Console.WriteLine("\nWCF NET.TCP Scan\n.......");
             if (args.Count() < 1)
             {
