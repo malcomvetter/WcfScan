@@ -4,14 +4,14 @@ using System.Net;
 using System.Net.Sockets;
 using System.ServiceModel;
 using System.ServiceModel.Security;
-
+ 
 namespace WcfScan
 {
     class Program
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("\nWCF NET.TCP Scan\n.......");
+            Console.WriteLine(".......\nWCF NET.TCP Scan\n");
             if (args.Count() < 1)
             {
                 Console.WriteLine("ERROR: Missing endpoint URL");
@@ -20,12 +20,30 @@ namespace WcfScan
             }
             var uri = new Uri(args[0]);
             Console.WriteLine(uri);
+            string userid = "";
+            string password = "";
+            try
+            {
+                userid = args[1];
+                password = args[2];
+            }
+            catch { }
+            string currentUser = "";
+            try
+            {
+                currentUser = System.Security.Principal.WindowsIdentity.GetCurrent().Name;
+            }
+            catch
+            {
+                currentUser = "unknown";
+            }
             if (!IsValidEndpoint(uri))
             {
                 DisplayUsage();
                 return;
             }
-            Console.WriteLine(" - Testing binding configurations with generic contract:");
+            Console.WriteLine(" + Testing with generic contract as {0}", currentUser);
+ 
             foreach (var mode in Enum.GetValues(typeof(SecurityMode)).Cast<SecurityMode>())
             {
                 try
@@ -43,6 +61,28 @@ namespace WcfScan
                     {
                         Console.WriteLine("***WARNING*** No authentication or transport encryption enabled on binding!");
                     }
+                    if (mode == SecurityMode.Transport)
+                    {
+                        try
+                        {
+                            //resend without creds to verify server is authenticating:
+                            var address = new EndpointAddress(uri);
+                            var binding = new NetTcpBinding(mode);
+                            binding.Security.Transport.ClientCredentialType = TcpClientCredentialType.None;
+                            var factory = new ChannelFactory<IDataAccess>(binding, address);
+                            var service = factory.CreateChannel();
+                            var result = service.SomeOperation("blah");
+                        }
+                        catch (ActionNotSupportedException anse)
+                        {
+                            Console.WriteLine("***WARNING**** Server does not require authentication!", mode);
+                            Console.WriteLine(anse.InnerException.Message);
+                        }
+                        catch (Exception)
+                        {
+                            Console.WriteLine("   * Server required credentials: {0}", currentUser);
+                        }
+                    }
                 }
                 catch (ProtocolException)
                 {
@@ -50,10 +90,37 @@ namespace WcfScan
                 }
                 catch (SecurityNegotiationException sne)
                 {
-                    if (sne.InnerException.InnerException != null && 
+                    if (sne.InnerException.InnerException != null &&
                         sne.InnerException.InnerException.Message.ToLower().Contains("target principal"))
                     {
-                        Console.WriteLine(" + Server accepted \"{0}\" security mode, but authentication failed:\n   - {1}", mode, sne.InnerException.InnerException.Message);
+                        Console.WriteLine(" + \"{0}\" security mode accepted, but rejected {1}: {2}", mode, currentUser, sne.InnerException.InnerException.Message);
+                        try
+                        {
+                            if (mode == SecurityMode.Transport
+                                && !string.IsNullOrWhiteSpace(userid)
+                                && !string.IsNullOrWhiteSpace(password))
+                            {
+                                //try it again with specified creds
+                                var address = new EndpointAddress(uri);
+                                var binding = new NetTcpBinding(mode);
+                                binding.Security.Transport.ClientCredentialType = TcpClientCredentialType.Windows;
+                                var factory = new ChannelFactory<IDataAccess>(binding, address);
+                                Console.WriteLine("   * Retrying specified credentials {0}:{1}", userid, password);
+                                factory.Credentials.UserName.UserName = userid;
+                                factory.Credentials.UserName.UserName = password;
+                                var service = factory.CreateChannel();
+                                var result = service.SomeOperation("blah");
+                            }
+                        }
+                        catch (ActionNotSupportedException anse)
+                        {
+                            Console.WriteLine("   * Credentials accepted in \"{0}\" security mode.", mode);
+                            Console.WriteLine(anse.InnerException.Message);
+                        }
+                        catch (Exception)
+                        {
+                            Console.WriteLine("   * Credentials rejected in \"{0}\" security mode.", mode);
+                        }
                     }
                     else
                     {
@@ -70,7 +137,7 @@ namespace WcfScan
                 }
             }
         }
-
+ 
         static bool IsValidEndpoint(Uri uri)
         {
             if (uri == null)
@@ -106,14 +173,16 @@ namespace WcfScan
             Console.WriteLine(" - successfully opened TCP connection to port");
             return true;
         }
-
+ 
         static void DisplayUsage()
         {
-            Console.WriteLine("\n\nUsage: WCFScan.exe net.tcp://[host]:[port]/[path]");
-            Console.WriteLine("As is, no warranty, use at own risk");
+            Console.WriteLine("\n\nUsage: WCFScan.exe net.tcp://[host]:[port]/[path] {options}");
+            Console.WriteLine(" Optionally include user/password, for example: ");
+            Console.WriteLine(" WCFScan.exe net.tcp://127.0.0.1:4444/service userid password");
+            Console.WriteLine(" * As is, no warranty, use at own risk");
         }
     }
-
+ 
     [ServiceContract]
     public interface IDataAccess
     {
