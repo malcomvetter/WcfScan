@@ -6,3 +6,6 @@ This code creates a very simple, generic service contract and attempts to connec
 Usage is simple: WcfScan.exe net.tcp://[host]:[port]/[path]
 
 Download here: `https://github.com/malcomvetter/WcfScan/blob/master/WcfScan/bin/Debug/WcfScan.exe`
+
+![NET.TCP None Mode](/WcfScan-NoneMode.png?raw=true "Scanning a NET.TCP connection without authentication or transport encryption.")
+![NET.TCP Transport Mode](/WcfScan-TransportMode.png?raw=true "Scanning an authenticated NET.TCP connection with transport encryption.")
