@@ -7,5 +7,8 @@ Usage is simple: WcfScan.exe net.tcp://[host]:[port]/[path]
 
 Download here: `https://github.com/malcomvetter/WcfScan/blob/master/WcfScan/bin/Debug/WcfScan.exe`
 
+Scanning a NET.TCP connection without authentication or transport encryption:
 ![NET.TCP None Mode](/WcfScan-NoneMode.png?raw=true "Scanning a NET.TCP connection without authentication or transport encryption.")
+
+Scanning an authenticated NET.TCP connection with transport encryption:
 ![NET.TCP Transport Mode](/WcfScan-TransportMode.png?raw=true "Scanning an authenticated NET.TCP connection with transport encryption.")
